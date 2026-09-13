@@ -1,0 +1,100 @@
+name: prdal-careers
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-prdal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prdal}
+      POSTGRES_DB: ${POSTGRES_DB:-prdal_careers}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-prdal}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo:
+    image: mongo:7
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-prdal}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-prdal}
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongodata:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  doc-service:
+    build:
+      context: ../apps/doc-service
+      dockerfile: Dockerfile
+    ports:
+      - "${DOC_SERVICE_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  ai-service:
+    build:
+      context: ../apps/ai-service
+      dockerfile: Dockerfile
+    environment:
+      DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
+    ports:
+      - "${AI_SERVICE_PORT:-8000}:8000"
+    depends_on:
+      doc-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8000}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://prdal:prdal@postgres:5432/prdal_careers}
+      MONGO_URL: ${MONGO_URL:-mongodb://prdal:prdal@mongo:27017}
+    ports:
+      - "${API_PORT:-3000}:3000"
+    depends_on:
+      ai-service:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    ports:
+      - "${WEB_PORT:-5173}:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  mongodata:
