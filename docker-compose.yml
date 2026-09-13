@@ -50,6 +50,9 @@ services:
       dockerfile: Dockerfile
     environment:
       DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
+      AI_PROVIDER: ${AI_PROVIDER:-groq}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
     ports:
       - "${AI_SERVICE_PORT:-8000}:8000"
     depends_on:
@@ -67,12 +70,19 @@ services:
       dockerfile: apps/api/Dockerfile
     environment:
       AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8000}
+      DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
       DATABASE_URL: ${DATABASE_URL:-postgresql://prdal:prdal@postgres:5432/prdal_careers}
       MONGO_URL: ${MONGO_URL:-mongodb://prdal:prdal@mongo:27017}
+      JWT_SECRET: ${JWT_SECRET:-dev-secret}
+      STORAGE_DIR: /app/storage
     ports:
       - "${API_PORT:-3000}:3000"
+    volumes:
+      - apistorage:/app/storage
     depends_on:
       ai-service:
+        condition: service_healthy
+      doc-service:
         condition: service_healthy
       postgres:
         condition: service_healthy
@@ -98,3 +108,4 @@ services:
 volumes:
   pgdata:
   mongodata:
+  apistorage:
