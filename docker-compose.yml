@@ -44,6 +44,22 @@ services:
       timeout: 5s
       retries: 5
 
+  chroma:
+    image: chromadb/chroma:0.5.20
+    environment:
+      IS_PERSISTENT: "TRUE"
+      PERSIST_DIRECTORY: /data
+      ANONYMIZED_TELEMETRY: "FALSE"
+    ports:
+      - "${CHROMA_PORT:-8001}:8000"
+    volumes:
+      - chromadata:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket,sys; s=socket.create_connection(('localhost',8000),2); s.close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   ai-service:
     build:
       context: ../apps/ai-service
@@ -53,10 +69,15 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-groq}
       GROQ_API_KEY: ${GROQ_API_KEY:-}
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      CHROMA_HOST: ${CHROMA_HOST:-chroma}
+      CHROMA_PORT: ${CHROMA_INTERNAL_PORT:-8000}
+      EMBED_MODEL: ${EMBED_MODEL:-paraphrase-multilingual-MiniLM-L12-v2}
     ports:
       - "${AI_SERVICE_PORT:-8000}:8000"
     depends_on:
       doc-service:
+        condition: service_healthy
+      chroma:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
@@ -109,3 +130,4 @@ volumes:
   pgdata:
   mongodata:
   apistorage:
+  chromadata:
