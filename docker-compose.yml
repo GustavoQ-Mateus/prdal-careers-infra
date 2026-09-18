@@ -62,16 +62,21 @@ services:
 
   ai-service:
     build:
-      context: ../apps/ai-service
-      dockerfile: Dockerfile
+      context: ..
+      dockerfile: apps/ai-service/Dockerfile
     env_file:
+      - path: ./.env
+        required: false
       - path: ../apps/ai-service/.env
         required: false
       - path: ../.env
         required: false
     environment:
+      AI_PROVIDER: ${AI_PROVIDER:-groq}
+      AI_MODEL: ${AI_MODEL:-openai/gpt-oss-120b}
+      AI_MAX_COMPLETION_TOKENS: ${AI_MAX_COMPLETION_TOKENS:-8192}
+      AI_REASONING_EFFORT: ${AI_REASONING_EFFORT:-medium}
       DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
       CHROMA_HOST: ${CHROMA_HOST:-chroma}
       CHROMA_PORT: ${CHROMA_INTERNAL_PORT:-8000}
       EMBED_MODEL: ${EMBED_MODEL:-paraphrase-multilingual-MiniLM-L12-v2}
@@ -86,6 +91,7 @@ services:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
       interval: 10s
       timeout: 5s
+      start_period: 120s
       retries: 5
 
   api:
