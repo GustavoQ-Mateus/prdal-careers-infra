@@ -73,7 +73,7 @@ services:
         required: false
     environment:
       AI_PROVIDER: ${AI_PROVIDER:-groq}
-      AI_MODEL: ${AI_MODEL:-openai/gpt-oss-120b}
+      AI_MODEL: ${AI_MODEL:-openai/gpt-oss-20b}
       AI_MAX_COMPLETION_TOKENS: ${AI_MAX_COMPLETION_TOKENS:-8192}
       AI_REASONING_EFFORT: ${AI_REASONING_EFFORT:-medium}
       AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-90}
