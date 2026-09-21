@@ -1,0 +1,79 @@
+name: prdal-careers
+
+x-ai-service-base: &ai-service-base
+  build:
+    context: ..
+    dockerfile: apps/ai-service/Dockerfile
+  env_file:
+    - path: ./.env
+      required: false
+    - path: ../apps/ai-service/.env
+      required: false
+    - path: ../.env
+      required: false
+  environment: &ai-service-env-base
+    AI_MAX_COMPLETION_TOKENS: ${AI_MAX_COMPLETION_TOKENS:-8192}
+    AI_REASONING_EFFORT: ${AI_REASONING_EFFORT:-medium}
+    AI_TIMEOUT_SECONDS: ${AI_TIMEOUT_SECONDS:-90}
+    AI_JSON_SCHEMA_MODE: ${AI_JSON_SCHEMA_MODE:-auto}
+    DOC_SERVICE_URL: http://doc-service:8080
+    CHROMA_HOST: chroma
+    CHROMA_PORT: ${CHROMA_INTERNAL_PORT:-8000}
+    EMBED_MODEL: ${EMBED_MODEL:-paraphrase-multilingual-MiniLM-L12-v2}
+  depends_on:
+    doc-service:
+      condition: service_healthy
+    chroma:
+      condition: service_healthy
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
+    interval: 10s
+    timeout: 5s
+    start_period: 120s
+    retries: 5
+
+services:
+  ai-service-gptoss120b:
+    <<: *ai-service-base
+    environment:
+      <<: *ai-service-env-base
+      AI_PROVIDER: groq
+      AI_MODEL: openai/gpt-oss-120b
+    ports:
+      - "8022:8000"
+
+  ai-service-qwen:
+    <<: *ai-service-base
+    environment:
+      <<: *ai-service-env-base
+      AI_PROVIDER: openrouter
+      AI_MODEL: qwen/qwen-2.5-72b-instruct
+    ports:
+      - "8025:8000"
+
+  ai-service-claude-sonnet:
+    <<: *ai-service-base
+    environment:
+      <<: *ai-service-env-base
+      AI_PROVIDER: openrouter
+      AI_MODEL: anthropic/claude-sonnet-4.6
+    ports:
+      - "8026:8000"
+
+  ai-service-grok:
+    <<: *ai-service-base
+    environment:
+      <<: *ai-service-env-base
+      AI_PROVIDER: openrouter
+      AI_MODEL: x-ai/grok-4.6
+    ports:
+      - "8027:8000"
+
+  ai-service-gpt56terra:
+    <<: *ai-service-base
+    environment:
+      <<: *ai-service-env-base
+      AI_PROVIDER: openrouter
+      AI_MODEL: openai/gpt-5.6-terra
+    ports:
+      - "8028:8000"
