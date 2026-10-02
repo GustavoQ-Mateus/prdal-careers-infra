@@ -5,10 +5,10 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-prdal}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-prdal}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
       POSTGRES_DB: ${POSTGRES_DB:-prdal_careers}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -21,9 +21,9 @@ services:
     image: mongo:7
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-prdal}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-prdal}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?defina MONGO_INITDB_ROOT_PASSWORD no .env}
     ports:
-      - "${MONGO_PORT:-27017}:27017"
+      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
     volumes:
       - mongodata:/data/db
     healthcheck:
@@ -36,8 +36,11 @@ services:
     build:
       context: ../apps/doc-service
       dockerfile: Dockerfile
+    environment:
+      PRDAL_AMBIENTE: ${PRDAL_AMBIENTE:-producao}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
     ports:
-      - "${DOC_SERVICE_PORT:-8080}:8080"
+      - "127.0.0.1:${DOC_SERVICE_PORT:-8080}:8080"
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
       interval: 10s
@@ -51,7 +54,7 @@ services:
       PERSIST_DIRECTORY: /data
       ANONYMIZED_TELEMETRY: "FALSE"
     ports:
-      - "${CHROMA_PORT:-8001}:8000"
+      - "127.0.0.1:${CHROMA_PORT:-8001}:8000"
     volumes:
       - chromadata:/data
     healthcheck:
@@ -82,8 +85,10 @@ services:
       CHROMA_HOST: ${CHROMA_HOST:-chroma}
       CHROMA_PORT: ${CHROMA_INTERNAL_PORT:-8000}
       EMBED_MODEL: ${EMBED_MODEL:-paraphrase-multilingual-MiniLM-L12-v2}
+      PRDAL_AMBIENTE: ${PRDAL_AMBIENTE:-producao}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
     ports:
-      - "${AI_SERVICE_PORT:-8000}:8000"
+      - "127.0.0.1:${AI_SERVICE_PORT:-8000}:8000"
     depends_on:
       doc-service:
         condition: service_healthy
@@ -104,9 +109,10 @@ services:
       AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8000}
       AI_GENERATE_TIMEOUT_MS: ${AI_GENERATE_TIMEOUT_MS:-300000}
       DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
-      DATABASE_URL: ${DATABASE_URL:-postgresql://prdal:prdal@postgres:5432/prdal_careers}
-      MONGO_URL: ${MONGO_URL:-mongodb://prdal:prdal@mongo:27017}
+      DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env com a senha de POSTGRES_PASSWORD}
+      MONGO_URL: ${MONGO_URL:?defina MONGO_URL no .env com a senha de MONGO_INITDB_ROOT_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env com pelo menos 32 bytes aleatorios}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
       STORAGE_DIR: /app/storage
     ports:
       - "${API_PORT:-3000}:3000"
