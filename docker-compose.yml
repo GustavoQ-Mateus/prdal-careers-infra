@@ -113,6 +113,7 @@ services:
       MONGO_URL: ${MONGO_URL:?defina MONGO_URL no .env com a senha de MONGO_INITDB_ROOT_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env com pelo menos 32 bytes aleatorios}
       SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
+      PRDAL_HSTS: ${PRDAL_HSTS:-}
       STORAGE_DIR: /app/storage
     ports:
       - "${API_PORT:-3000}:3000"
@@ -139,6 +140,8 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+    environment:
+      PRDAL_HSTS: ${PRDAL_HSTS:-}
     ports:
       - "${WEB_PORT:-5173}:80"
     depends_on:
