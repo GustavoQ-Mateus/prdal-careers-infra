@@ -119,6 +119,7 @@ services:
       REFRESH_TTL_DIAS: ${REFRESH_TTL_DIAS:-7}
       REFRESH_TOLERANCIA_S: ${REFRESH_TOLERANCIA_S:-30}
       TRUST_PROXY: ${TRUST_PROXY:-0}
+      API_PREFIXO: ${API_PREFIXO:-}
       STORAGE_DIR: /app/storage
     ports:
       - "${API_PORT:-3000}:3000"
