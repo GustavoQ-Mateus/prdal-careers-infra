@@ -85,6 +85,7 @@ services:
       CHROMA_HOST: ${CHROMA_HOST:-chroma}
       CHROMA_PORT: ${CHROMA_INTERNAL_PORT:-8000}
       EMBED_MODEL: ${EMBED_MODEL:-paraphrase-multilingual-MiniLM-L12-v2}
+      RAG_LIMIAR_SIMILARIDADE: ${RAG_LIMIAR_SIMILARIDADE:-0.35}
       PRDAL_AMBIENTE: ${PRDAL_AMBIENTE:-producao}
       SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
     ports:
