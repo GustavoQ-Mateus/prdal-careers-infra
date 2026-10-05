@@ -26,6 +26,17 @@ services:
     ports:
       - "127.0.0.1:${ELASTICMQ_PORT:-9324}:9324"
 
+  s3:
+    image: chrislusf/seaweedfs:4.48
+    command: ["mini", "-dir=/data", "-bucket=${S3_BUCKET:-prdal-arquivos}"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-prdal-local}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-prdal-local-segredo}
+    ports:
+      - "127.0.0.1:${S3_PORT:-8333}:8333"
+    volumes:
+      - s3data:/data
+
   doc-service:
     build:
       context: ../apps/doc-service
@@ -121,17 +132,18 @@ services:
       DESLIGAMENTO_PRAZO_MS: ${DESLIGAMENTO_PRAZO_MS:-25000}
       API_VERSAO: ${API_VERSAO-v1}
       LOG_NIVEL: ${LOG_NIVEL:-info}
-      STORAGE_DIR: /app/storage
       AWS_REGION: ${AWS_REGION:-us-east-1}
       AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-prdal-local}
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-prdal-local-segredo}
       SQS_ENDPOINT: ${SQS_ENDPOINT-http://elasticmq:9324}
       SQS_FILA_JOBS_URL: ${SQS_FILA_JOBS_URL:-http://elasticmq:9324/000000000000/prdal-jobs}
+      S3_BUCKET: ${S3_BUCKET:-prdal-arquivos}
+      S3_ENDPOINT: ${S3_ENDPOINT-http://s3:8333}
+      S3_ENDPOINT_PUBLICO: ${S3_ENDPOINT_PUBLICO-http://localhost:${S3_PORT:-8333}}
+      S3_URL_VALIDADE_S: ${S3_URL_VALIDADE_S:-300}
     ports:
       - "${API_PORT:-3000}:3000"
     stop_grace_period: 30s
-    volumes:
-      - apistorage:/app/storage
     depends_on:
       postgres:
         condition: service_healthy
@@ -139,11 +151,37 @@ services:
         condition: service_completed_successfully
       elasticmq:
         condition: service_started
+      s3:
+        condition: service_started
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  migrar-arquivos-s3:
+    profiles: ["migracao-arquivos"]
+    build:
+      context: ..
+      dockerfile: apps/jobs/migrar-arquivos-s3/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env com a senha de POSTGRES_PASSWORD}
+      ARQUIVOS_LOCAIS_DIR: /app/storage
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-prdal-local}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-prdal-local-segredo}
+      S3_BUCKET: ${S3_BUCKET:-prdal-arquivos}
+      S3_ENDPOINT: ${S3_ENDPOINT-http://s3:8333}
+    volumes:
+      - apistorage:/app/storage:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migracao:
+        condition: service_completed_successfully
+      s3:
+        condition: service_started
+    restart: "no"
 
   worker:
     build:
@@ -200,3 +238,4 @@ services:
 volumes:
   pgdata:
   apistorage:
+  s3data:
