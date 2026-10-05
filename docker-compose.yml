@@ -19,6 +19,13 @@ services:
       timeout: 5s
       retries: 5
 
+  elasticmq:
+    image: softwaremill/elasticmq-native:1.6.15
+    volumes:
+      - ./elasticmq/elasticmq.conf:/opt/elasticmq.conf:ro
+    ports:
+      - "127.0.0.1:${ELASTICMQ_PORT:-9324}:9324"
+
   doc-service:
     build:
       context: ../apps/doc-service
@@ -115,6 +122,11 @@ services:
       API_VERSAO: ${API_VERSAO-v1}
       LOG_NIVEL: ${LOG_NIVEL:-info}
       STORAGE_DIR: /app/storage
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-prdal-local}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-prdal-local-segredo}
+      SQS_ENDPOINT: ${SQS_ENDPOINT-http://elasticmq:9324}
+      SQS_FILA_JOBS_URL: ${SQS_FILA_JOBS_URL:-http://elasticmq:9324/000000000000/prdal-jobs}
     ports:
       - "${API_PORT:-3000}:3000"
     stop_grace_period: 30s
@@ -125,6 +137,8 @@ services:
         condition: service_healthy
       migracao:
         condition: service_completed_successfully
+      elasticmq:
+        condition: service_started
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
