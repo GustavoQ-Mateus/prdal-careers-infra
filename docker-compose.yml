@@ -94,6 +94,7 @@ services:
       SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
     ports:
       - "127.0.0.1:${AI_SERVICE_PORT:-8000}:8000"
+    stop_grace_period: 30s
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
       interval: 10s
@@ -140,9 +141,13 @@ services:
       SSE_HEARTBEAT_MS: ${SSE_HEARTBEAT_MS:-15000}
       TURNO_LEASE_S: ${TURNO_LEASE_S:-60}
       PRONTIDAO_TIMEOUT_MS: ${PRONTIDAO_TIMEOUT_MS:-2000}
+      DESLIGAMENTO_PRAZO_MS: ${DESLIGAMENTO_PRAZO_MS:-25000}
+      API_VERSAO: ${API_VERSAO:-v1}
+      LOG_NIVEL: ${LOG_NIVEL:-info}
       STORAGE_DIR: /app/storage
     ports:
       - "${API_PORT:-3000}:3000"
+    stop_grace_period: 30s
     volumes:
       - apistorage:/app/storage
     depends_on:
