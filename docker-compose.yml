@@ -268,7 +268,7 @@ services:
     environment:
       PRDAL_HSTS: ${PRDAL_HSTS:-}
     ports:
-      - "${WEB_PORT:-5173}:80"
+      - "${WEB_PORT:-5173}:8080"
     depends_on:
       - api
 
