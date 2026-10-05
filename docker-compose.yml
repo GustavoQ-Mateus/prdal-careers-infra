@@ -90,8 +90,9 @@ services:
       DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
       CHROMA_HOST: ${CHROMA_HOST:-chroma}
       CHROMA_PORT: ${CHROMA_INTERNAL_PORT:-8000}
-      EMBED_MODEL: ${EMBED_MODEL:-paraphrase-multilingual-MiniLM-L12-v2}
-      RAG_LIMIAR_SIMILARIDADE: ${RAG_LIMIAR_SIMILARIDADE:-0.35}
+      EMBED_MODEL: ${EMBED_MODEL:-intfloat/multilingual-e5-small}
+      EMBED_DIMENSAO: ${EMBED_DIMENSAO:-384}
+      RAG_LIMIAR_SIMILARIDADE: ${RAG_LIMIAR_SIMILARIDADE:-}
       PRDAL_AMBIENTE: ${PRDAL_AMBIENTE:-producao}
       SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
     ports:
@@ -127,6 +128,7 @@ services:
       AI_GENERATE_TIMEOUT_MS: ${AI_GENERATE_TIMEOUT_MS:-300000}
       DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
       DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env com a senha de POSTGRES_PASSWORD}
+      EMBED_DIMENSAO: ${EMBED_DIMENSAO:-384}
       MONGO_URL: ${MONGO_URL:?defina MONGO_URL no .env com a senha de MONGO_INITDB_ROOT_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env com pelo menos 32 bytes aleatorios}
       SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
