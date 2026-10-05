@@ -9,7 +9,8 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region              = "us-east-1"
+  allowed_account_ids = ["<conta>"]
   default_tags {
     tags = {
       projeto  = "prdal-careers"
