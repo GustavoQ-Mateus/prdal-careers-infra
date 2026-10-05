@@ -19,21 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  mongo:
-    image: mongo:7
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-prdal}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?defina MONGO_INITDB_ROOT_PASSWORD no .env}
-    ports:
-      - "127.0.0.1:${MONGO_PORT:-27017}:27017"
-    volumes:
-      - mongodata:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   doc-service:
     build:
       context: ../apps/doc-service
@@ -48,22 +33,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  chroma:
-    image: chromadb/chroma:0.5.20
-    environment:
-      IS_PERSISTENT: "TRUE"
-      PERSIST_DIRECTORY: /data
-      ANONYMIZED_TELEMETRY: "FALSE"
-    ports:
-      - "127.0.0.1:${CHROMA_PORT:-8001}:8000"
-    volumes:
-      - chromadata:/data
-    healthcheck:
-      test: ["CMD", "python", "-c", "import socket,sys; s=socket.create_connection(('localhost',8000),2); s.close()"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
 
   ai-service:
     build:
@@ -88,8 +57,6 @@ services:
       AI_CARACTERES_POR_TOKEN: ${AI_CARACTERES_POR_TOKEN:-3}
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
-      CHROMA_HOST: ${CHROMA_HOST:-chroma}
-      CHROMA_PORT: ${CHROMA_INTERNAL_PORT:-8000}
       EMBED_MODEL: ${EMBED_MODEL:-intfloat/multilingual-e5-small}
       EMBED_DIMENSAO: ${EMBED_DIMENSAO:-384}
       RAG_LIMIAR_SIMILARIDADE: ${RAG_LIMIAR_SIMILARIDADE:-}
@@ -129,7 +96,6 @@ services:
       DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
       DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env com a senha de POSTGRES_PASSWORD}
       EMBED_DIMENSAO: ${EMBED_DIMENSAO:-384}
-      MONGO_URL: ${MONGO_URL:?defina MONGO_URL no .env com a senha de MONGO_INITDB_ROOT_PASSWORD}
       JWT_SECRET: ${JWT_SECRET:?defina JWT_SECRET no .env com pelo menos 32 bytes aleatorios}
       SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
       PRDAL_HSTS: ${PRDAL_HSTS:-}
@@ -159,8 +125,6 @@ services:
         condition: service_healthy
       migracao:
         condition: service_completed_successfully
-      mongo:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
@@ -183,6 +147,4 @@ services:
 
 volumes:
   pgdata:
-  mongodata:
   apistorage:
-  chromadata:
