@@ -106,6 +106,18 @@ services:
       start_period: 120s
       retries: 5
 
+  migracao:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env com a senha de POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   api:
     build:
       context: ..
@@ -139,6 +151,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      migracao:
+        condition: service_completed_successfully
       mongo:
         condition: service_healthy
     healthcheck:
