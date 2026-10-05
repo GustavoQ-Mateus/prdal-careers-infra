@@ -94,11 +94,6 @@ services:
       SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
     ports:
       - "127.0.0.1:${AI_SERVICE_PORT:-8000}:8000"
-    depends_on:
-      doc-service:
-        condition: service_healthy
-      chroma:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health').status==200 else 1)"]
       interval: 10s
@@ -145,10 +140,6 @@ services:
     volumes:
       - apistorage:/app/storage
     depends_on:
-      ai-service:
-        condition: service_healthy
-      doc-service:
-        condition: service_healthy
       postgres:
         condition: service_healthy
       migracao:
