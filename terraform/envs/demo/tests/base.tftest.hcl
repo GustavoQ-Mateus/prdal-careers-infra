@@ -35,11 +35,11 @@ run "base_com_batch" {
     habilitar_base  = true
   }
   assert {
-    condition     = toset(keys(output.ecr_urls)) == toset(["api", "worker", "ai-service", "doc-service", "batch-migrar-arquivos-s3"])
+    condition     = toset(keys(output.ecr_urls)) == toset(["api", "worker", "ai-service", "doc-service", "batch-migrar-arquivos-s3", "batch-reprocessar-keywords", "lambda-enviar-lembrete"])
     error_message = "A imagem do Batch precisa seguir o nome do repositório."
   }
   assert {
-    condition     = length(output.github_oidc_papeis) == 8
+    condition     = length(output.github_oidc_papeis) == 10
     error_message = "Cada espelho precisa ter seu papel OIDC."
   }
 }

@@ -1,5 +1,7 @@
 # Entrega de repositórios e base AWS
 
+Este registro descreve a entrega inicial. A sincronização após C3b, os dois espelhos novos, os módulos de executores e os planos autenticados posteriores estão no [relatório de executores](RELATORIO-EXECUTORES.md), que atualiza as pendências abaixo.
+
 Worktree `prdal-careers-aws`, branch `impl/aws`. A frente A foi concluída antes da implementação da frente B. Nenhum `apply` ou `destroy` foi executado. Os planos autenticados e a criação dos recursos Terraform aguardam a configuração do perfil pelo autor e as aprovações específicas.
 
 ## Frente A
