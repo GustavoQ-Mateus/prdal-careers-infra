@@ -2,7 +2,9 @@ name: prdal-careers
 
 services:
   postgres:
-    image: postgres:16-alpine
+    build:
+      context: ./postgres
+    image: prdal-careers-postgres:16-pgvector
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-prdal}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
