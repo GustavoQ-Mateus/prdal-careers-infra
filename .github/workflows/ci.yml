@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: '1.10.5'
+      - name: Verificar texto
+        run: python scripts/verificar-texto.py
+      - name: Validar Terraform
+        run: |
+          terraform -chdir=terraform fmt -check -recursive
+          for pasta in bootstrap envs/demo; do
+            terraform -chdir="terraform/$pasta" init -backend=false -input=false
+            terraform -chdir="terraform/$pasta" validate -no-color
+          done
