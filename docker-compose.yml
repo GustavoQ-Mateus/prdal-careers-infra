@@ -145,6 +145,44 @@ services:
       timeout: 5s
       retries: 5
 
+  worker:
+    build:
+      context: ..
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env com a senha de POSTGRES_PASSWORD}
+      AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8000}
+      AI_LLM_TIMEOUT_MS: ${AI_LLM_TIMEOUT_MS:-60000}
+      AI_GENERATE_TIMEOUT_MS: ${AI_GENERATE_TIMEOUT_MS:-300000}
+      DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
+      COTA_TOKENS_DIA: ${COTA_TOKENS_DIA:-1000000}
+      EMBED_DIMENSAO: ${EMBED_DIMENSAO:-384}
+      AWS_REGION: ${AWS_REGION:-us-east-1}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-prdal-local}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-prdal-local-segredo}
+      SQS_ENDPOINT: ${SQS_ENDPOINT-http://elasticmq:9324}
+      SQS_FILA_JOBS_URL: ${SQS_FILA_JOBS_URL:-http://elasticmq:9324/000000000000/prdal-jobs}
+      WORKER_CONCORRENCIA: ${WORKER_CONCORRENCIA:-2}
+      WORKER_LEASE_S: ${WORKER_LEASE_S:-60}
+      WORKER_MAX_TENTATIVAS: ${WORKER_MAX_TENTATIVAS:-3}
+      VARREDURA_INTERVALO_MS: ${VARREDURA_INTERVALO_MS:-30000}
+      DESLIGAMENTO_PRAZO_MS: ${DESLIGAMENTO_PRAZO_MS:-25000}
+      PRONTIDAO_TIMEOUT_MS: ${PRONTIDAO_TIMEOUT_MS:-2000}
+    stop_grace_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migracao:
+        condition: service_completed_successfully
+      elasticmq:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   web:
     build:
       context: ..
