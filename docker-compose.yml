@@ -189,6 +189,8 @@ services:
     environment:
       DATABASE_URL: ${DATABASE_URL:?defina DATABASE_URL no .env com a senha de POSTGRES_PASSWORD}
       AI_SERVICE_URL: ${AI_SERVICE_URL:-http://ai-service:8000}
+      AGENDADOR_MODO: ${AGENDADOR_MODO:-local}
+      LEMBRETE_URL: http://enviar-lembrete:3002
       AI_LLM_TIMEOUT_MS: ${AI_LLM_TIMEOUT_MS:-60000}
       AI_GENERATE_TIMEOUT_MS: ${AI_GENERATE_TIMEOUT_MS:-300000}
       DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
@@ -224,6 +226,16 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  enviar-lembrete:
+    build:
+      context: ..
+      dockerfile: apps/lambdas/enviar-lembrete/Dockerfile
+      target: local
+    environment:
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
+      REMETENTE_MODO: log
+    restart: unless-stopped
 
   web:
     build:
