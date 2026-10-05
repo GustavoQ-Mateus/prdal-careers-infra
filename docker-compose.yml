@@ -142,7 +142,7 @@ services:
       TURNO_LEASE_S: ${TURNO_LEASE_S:-60}
       PRONTIDAO_TIMEOUT_MS: ${PRONTIDAO_TIMEOUT_MS:-2000}
       DESLIGAMENTO_PRAZO_MS: ${DESLIGAMENTO_PRAZO_MS:-25000}
-      API_VERSAO: ${API_VERSAO:-v1}
+      API_VERSAO: ${API_VERSAO-v1}
       LOG_NIVEL: ${LOG_NIVEL:-info}
       STORAGE_DIR: /app/storage
     ports:
@@ -169,6 +169,7 @@ services:
       dockerfile: apps/web/Dockerfile
       args:
         VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+        VITE_API_VERSAO: ${VITE_API_VERSAO-${API_VERSAO-v1}}
     environment:
       PRDAL_HSTS: ${PRDAL_HSTS:-}
     ports:
