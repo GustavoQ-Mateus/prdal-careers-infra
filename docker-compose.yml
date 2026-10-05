@@ -77,7 +77,6 @@ services:
       DOC_SERVICE_URL: ${DOC_SERVICE_URL:-http://doc-service:8080}
       EMBED_MODEL: ${EMBED_MODEL:-intfloat/multilingual-e5-small}
       EMBED_DIMENSAO: ${EMBED_DIMENSAO:-384}
-      RAG_LIMIAR_SIMILARIDADE: ${RAG_LIMIAR_SIMILARIDADE:-}
       PRDAL_AMBIENTE: ${PRDAL_AMBIENTE:-producao}
       SERVICE_TOKEN: ${SERVICE_TOKEN:?defina SERVICE_TOKEN no .env com pelo menos 32 bytes aleatorios}
     ports:
