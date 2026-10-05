@@ -201,6 +201,8 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-prdal-local-segredo}
       SQS_ENDPOINT: ${SQS_ENDPOINT-http://elasticmq:9324}
       SQS_FILA_JOBS_URL: ${SQS_FILA_JOBS_URL:-http://elasticmq:9324/000000000000/prdal-jobs}
+      S3_BUCKET: ${S3_BUCKET:-prdal-arquivos}
+      S3_ENDPOINT: ${S3_ENDPOINT-http://s3:8333}
       WORKER_CONCORRENCIA: ${WORKER_CONCORRENCIA:-2}
       WORKER_LEASE_S: ${WORKER_LEASE_S:-60}
       WORKER_MAX_TENTATIVAS: ${WORKER_MAX_TENTATIVAS:-3}
@@ -214,6 +216,8 @@ services:
       migracao:
         condition: service_completed_successfully
       elasticmq:
+        condition: service_started
+      s3:
         condition: service_started
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3001/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
