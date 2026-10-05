@@ -6,7 +6,7 @@ module "network" {
 }
 
 locals {
-  imagens = toset(["api", "worker", "ai-service", "doc-service", "batch-migrar-arquivos-s3"])
+  imagens = toset(["api", "worker", "ai-service", "doc-service", "batch-migrar-arquivos-s3", "batch-reprocessar-keywords", "lambda-enviar-lembrete"])
 }
 
 module "ecr" {
