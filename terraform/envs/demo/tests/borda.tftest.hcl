@@ -21,7 +21,7 @@ run "alb_https" {
     certificado_arn  = "arn:aws:acm:us-east-1:765656213653:certificate/00000000-0000-0000-0000-000000000000"
   }
   assert {
-    condition     = aws_lb.principal.idle_timeout == 120 && aws_lb_listener.https.protocol == "HTTPS" && aws_lb_target_group.api.health_check[0].path == "/ready"
+    condition     = aws_lb.principal.idle_timeout == 120 && aws_lb_listener.https[0].protocol == "HTTPS" && aws_lb_target_group.api.health_check[0].path == "/ready"
     error_message = "O ALB precisa de HTTPS, readiness e idle de 120 segundos."
   }
 }
@@ -54,7 +54,7 @@ run "servico_com_rollback" {
     memoria            = 1024
   }
   assert {
-    condition     = aws_ecs_service.servico.deployment_circuit_breaker[0].rollback && aws_ecs_service.servico.network_configuration[0].assign_public_ip
+    condition     = aws_ecs_service.servico[0].deployment_circuit_breaker[0].rollback && aws_ecs_service.servico[0].network_configuration[0].assign_public_ip
     error_message = "O serviço demo precisa de rollback e acesso de saída sem NAT."
   }
 }

@@ -10,6 +10,12 @@ mock_provider "aws" {
   mock_resource "aws_iam_openid_connect_provider" { defaults = { arn = "arn:aws:iam::765656213653:oidc-provider/token.actions.githubusercontent.com" } }
   mock_resource "aws_lambda_function" { defaults = { arn = "arn:aws:lambda:us-east-1:765656213653:function:teste" } }
   mock_resource "aws_batch_compute_environment" { defaults = { arn = "arn:aws:batch:us-east-1:765656213653:compute-environment/teste" } }
+  mock_resource "aws_ecs_cluster" { defaults = { arn = "arn:aws:ecs:us-east-1:765656213653:cluster/teste" } }
+  mock_resource "aws_service_discovery_http_namespace" { defaults = { arn = "arn:aws:servicediscovery:us-east-1:765656213653:namespace/ns-teste" } }
+  mock_resource "aws_lb_target_group" { defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:765656213653:targetgroup/teste/0123456789abcdef" } }
+  mock_resource "aws_cloudfront_distribution" { defaults = { arn = "arn:aws:cloudfront::765656213653:distribution/TESTE" } }
+  mock_resource "aws_s3_bucket" { defaults = { arn = "arn:aws:s3:::teste", bucket_regional_domain_name = "teste.s3.us-east-1.amazonaws.com" } }
+  mock_data "aws_secretsmanager_secret_version" { defaults = { secret_string = "token-de-servico-de-teste-com-mais-de-32-bytes" } }
 }
 mock_provider "random" { override_during = plan }
 
@@ -95,40 +101,37 @@ run "batch_isolado" {
 run "contrato_completo" {
   command = plan
   variables {
-    email_orcamento         = "orcamento@example.invalid"
-    habilitar_base          = true
-    lambda_segredos_por_arn = true
-    ai_service_url          = "http://ai-service.demo:8000"
-    arquivos_efs = {
-      id                = "fs-0123456789abcdef0"
-      access_point      = "fsap-0123456789abcdef0"
-      security_group_id = "sg-1123456789abcdef0"
-      arn               = "arn:aws:elasticfilesystem:us-east-1:765656213653:file-system/fs-0123456789abcdef0"
-    }
-    imagens_executores = {
-      ai-service                 = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/ai-service@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      lambda-enviar-lembrete     = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/lambda-enviar-lembrete@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-      batch-migrar-arquivos-s3   = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/batch-migrar-arquivos-s3@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-      batch-reprocessar-keywords = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/batch-reprocessar-keywords@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+    email_orcamento = "orcamento@example.invalid"
+    habilitar_base  = true
+    imagens_servicos = {
+      ai-service             = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/ai-service@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      lambda-enviar-lembrete = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/lambda-enviar-lembrete@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      api                    = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/api@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      worker                 = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/worker@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      doc-service            = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/doc-service@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
     }
   }
   assert {
-    condition     = length(module.passos) == 5 && length(module.lembrete) == 1 && length(module.batch) == 1 && output.ambiente_worker_executores.EXECUTOR_MODO == "lambda"
-    error_message = "Cinco passos, lembrete, Batch e contrato do worker devem ser planejados."
+    condition     = length(module.passos) == 5 && length(module.lembrete) == 1 && length(module.doc_render) == 1 && length(module.api) == 1 && length(module.worker) == 1 && length(module.ai_service) == 1 && length(module.alb) == 1 && length(module.cdn) == 1 && output.ambiente_worker_executores.EXECUTOR_MODO == "lambda"
+    error_message = "O demo deve ligar as Lambdas, os tres servicos ECS, ALB e CDN."
+  }
+  assert {
+    condition     = tonumber(output.ambiente_worker_executores.WORKER_LEASE_S) * 1000 > tonumber(output.ambiente_worker_executores.AI_STEP_TIMEOUT_MS) && tonumber(output.ambiente_worker_executores.WORKER_VISIBILIDADE_INICIAL_S) * 1000 > tonumber(output.ambiente_worker_executores.AI_STEP_TIMEOUT_MS)
+    error_message = "O lease e a visibilidade do worker devem durar mais que a espera por uma etapa de IA."
   }
 }
 
-run "impedir_lambda_sem_leitor_segredo" {
+run "impedir_imagens_incompletas" {
   command = plan
   variables {
     email_orcamento = "orcamento@example.invalid"
     habilitar_base  = true
-    imagens_executores = {
+    imagens_servicos = {
       ai-service                 = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/ai-service@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       lambda-enviar-lembrete     = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/lambda-enviar-lembrete@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
       batch-migrar-arquivos-s3   = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/batch-migrar-arquivos-s3@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
       batch-reprocessar-keywords = "765656213653.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/batch-reprocessar-keywords@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
     }
   }
-  expect_failures = [terraform_data.requisitos_executores]
+  expect_failures = [var.imagens_servicos]
 }

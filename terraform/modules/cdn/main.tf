@@ -9,6 +9,31 @@ variable "certificado_web_arn" {
   type    = string
   default = null
 }
+variable "alb_origin_protocol_policy" {
+  type    = string
+  default = "https-only"
+}
+variable "alb_origin_header_value" {
+  type      = string
+  default   = null
+  sensitive = true
+}
+variable "alb_origin_header_habilitado" {
+  type    = bool
+  default = false
+}
+
+data "aws_cloudfront_cache_policy" "managed_cachingdisabled" {
+  name = "Managed-CachingDisabled"
+}
+
+data "aws_cloudfront_cache_policy" "managed_cachingoptimized" {
+  name = "Managed-CachingOptimized"
+}
+
+data "aws_cloudfront_origin_request_policy" "managed_allviewer_except_hostheader" {
+  name = "Managed-AllViewerExceptHostHeader"
+}
 
 resource "aws_s3_bucket" "web" {
   bucket        = var.bucket_web
@@ -61,6 +86,13 @@ resource "aws_cloudfront_response_headers_policy" "seguranca" {
   }
 }
 
+resource "aws_cloudfront_function" "web_rotas" {
+  name    = "${var.nome}-web-rotas"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = "function handler(event) { var request = event.request; if (!request.uri.startsWith('/api/') && !request.uri.includes('.')) { request.uri = '/index.html'; } return request; }"
+}
+
 resource "aws_cloudfront_distribution" "principal" {
   enabled             = true
   is_ipv6_enabled     = true
@@ -80,10 +112,17 @@ resource "aws_cloudfront_distribution" "principal" {
     custom_origin_config {
       http_port                = 80
       https_port               = 443
-      origin_protocol_policy   = "https-only"
+      origin_protocol_policy   = var.alb_origin_protocol_policy
       origin_ssl_protocols     = ["TLSv1.2"]
       origin_read_timeout      = 60
       origin_keepalive_timeout = 60
+    }
+    dynamic "custom_header" {
+      for_each = var.alb_origin_header_habilitado ? [1] : []
+      content {
+        name  = "X-Prdal-Origin-Token"
+        value = var.alb_origin_header_value
+      }
     }
   }
 
@@ -92,9 +131,13 @@ resource "aws_cloudfront_distribution" "principal" {
     viewer_protocol_policy     = "redirect-to-https"
     allowed_methods            = ["GET", "HEAD", "OPTIONS"]
     cached_methods             = ["GET", "HEAD"]
-    cache_policy_id            = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+    cache_policy_id            = data.aws_cloudfront_cache_policy.managed_cachingoptimized.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.seguranca.id
     compress                   = true
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.web_rotas.arn
+    }
   }
 
   ordered_cache_behavior {
@@ -103,8 +146,8 @@ resource "aws_cloudfront_distribution" "principal" {
     viewer_protocol_policy     = "https-only"
     allowed_methods            = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
     cached_methods             = ["GET", "HEAD"]
-    cache_policy_id            = "413f1604-7b55-4a6f-b1cc-86f94c33c1f0"
-    origin_request_policy_id   = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
+    cache_policy_id            = data.aws_cloudfront_cache_policy.managed_cachingdisabled.id
+    origin_request_policy_id   = data.aws_cloudfront_origin_request_policy.managed_allviewer_except_hostheader.id
     response_headers_policy_id = aws_cloudfront_response_headers_policy.seguranca.id
     compress                   = false
   }
@@ -117,7 +160,7 @@ resource "aws_cloudfront_distribution" "principal" {
     cloudfront_default_certificate = var.dominio_web == null
     acm_certificate_arn            = var.certificado_web_arn
     ssl_support_method             = var.dominio_web == null ? null : "sni-only"
-    minimum_protocol_version       = var.dominio_web == null ? "TLSv1" : "TLSv1.2_2021"
+    minimum_protocol_version       = "TLSv1.2_2021"
   }
 }
 
@@ -138,3 +181,4 @@ resource "aws_s3_bucket_policy" "web" {
 }
 
 output "dominio" { value = aws_cloudfront_distribution.principal.domain_name }
+output "bucket" { value = aws_s3_bucket.web.bucket }

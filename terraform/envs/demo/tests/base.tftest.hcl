@@ -73,14 +73,19 @@ run "rede_sem_nat" {
 run "banco_privado" {
   command = plan
   module { source = "../../modules/rds" }
+  override_resource {
+    target          = random_password.postgres
+    values          = { result = "senha-sintetica-do-postgres-com-40-bytes-12" }
+    override_during = plan
+  }
   variables {
     nome             = "teste"
     vpc_id           = "vpc-0123456789abcdef0"
     subnets_privadas = ["subnet-0123456789abcdef0", "subnet-1123456789abcdef0"]
   }
   assert {
-    condition     = aws_db_instance.postgres.publicly_accessible == false && aws_db_instance.postgres.storage_encrypted && aws_db_instance.postgres.manage_master_user_password
-    error_message = "O banco deve ser privado, criptografado e ter senha gerenciada."
+    condition     = aws_db_instance.postgres.publicly_accessible == false && aws_db_instance.postgres.storage_encrypted && aws_db_instance.postgres.password == random_password.postgres.result && !coalesce(aws_db_instance.postgres.manage_master_user_password, false)
+    error_message = "O banco deve ser privado, criptografado e usar somente a senha gerada pelo Terraform."
   }
 }
 

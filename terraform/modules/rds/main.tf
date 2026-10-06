@@ -15,6 +15,11 @@ variable "snapshot_identifier" {
   default = null
 }
 
+resource "random_password" "postgres" {
+  length  = 40
+  special = false
+}
+
 resource "aws_security_group" "banco" {
   name_prefix = "${var.nome}-banco-"
   description = "Acesso privado ao PostgreSQL"
@@ -37,6 +42,7 @@ resource "aws_db_instance" "postgres" {
   allocated_storage            = 20
   storage_type                 = "gp3"
   storage_encrypted            = true
+  password                     = random_password.postgres.result
   multi_az                     = false
   db_subnet_group_name         = aws_db_subnet_group.banco.name
   vpc_security_group_ids       = [aws_security_group.banco.id]
@@ -49,7 +55,6 @@ resource "aws_db_instance" "postgres" {
   snapshot_identifier          = var.snapshot_identifier
   db_name                      = var.snapshot_identifier == null ? "prdal_careers" : null
   username                     = var.snapshot_identifier == null ? "prdal" : null
-  manage_master_user_password  = true
   auto_minor_version_upgrade   = true
   performance_insights_enabled = false
   lifecycle {
@@ -63,6 +68,11 @@ output "identifier" {
 
 output "endpoint" {
   value = aws_db_instance.postgres.endpoint
+}
+
+output "password" {
+  value     = random_password.postgres.result
+  sensitive = true
 }
 
 output "security_group_id" {
