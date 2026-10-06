@@ -1,9 +1,14 @@
 variable "repositorios" {
   type = map(object({
     github          = string
+    github_id       = string
     ecr_arn         = string
     publicar_imagem = bool
   }))
+  validation {
+    condition     = alltrue([for repo in var.repositorios : can(regex("^[1-9][0-9]*$", repo.github_id))])
+    error_message = "Informe o ID imutavel de cada repositorio GitHub."
+  }
 }
 
 resource "aws_iam_openid_connect_provider" "github" {
@@ -25,7 +30,7 @@ resource "aws_iam_role" "publicar" {
       Condition = {
         StringEquals = {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
-          "token.actions.githubusercontent.com:sub" = "repo:GustavoQ-Mateus/${each.value.github}:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "repo:GustavoQ-Mateus@199433320/${each.value.github}@${each.value.github_id}:ref:refs/heads/main"
         }
       }
     }]
