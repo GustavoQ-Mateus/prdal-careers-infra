@@ -42,3 +42,11 @@ Fontes: [RDS PostgreSQL](https://aws.amazon.com/rds/postgresql/pricing/), [Secre
 `base-verificada-d2-20261006.tfplan` e seu log em `envs/demo/` registram o plano autenticado sem diferenças após o apply. A CLI confirmou RDS disponível e privado, zero NAT, S3 privado, cluster sem tarefas e metadados do segredo Anthropic sem versão. As suítes locais executadas anteriormente passaram em quinze cenários Terraform mockados e seis cenários PowerShell; não substituem o smoke test real e não foram repetidas nesta etapa sem mudança de configuração.
 
 Nenhum destroy, migração de banco, acesso ao banco local do autor ou chamada real ao modelo foi executado. O demo ainda não tem URL pública. A ativação dos serviços e executores depende da publicação das imagens e de novo plano aprovado. Os scripts `subir.ps1` e `destruir.ps1` ainda precisam receber a integração dos serviços, executores e limpeza dos agendamentos antes de provar o ciclo completo da CA196.
+
+## Variáveis dos espelhos
+
+`AWS_ROLE_ARN` foi gravado com `gh variable set` e conferido pela API em todos os dez espelhos. Cada valor corresponde ao ARN real `arn:aws:iam::765656213653:role/prdal-demo-publicar-<unidade>`, conferido no IAM. Nenhuma chave ou segredo foi colocado no GitHub.
+
+`ECS_CLUSTER=prdal-demo` foi gravado em api, worker e ai-service. O web recebeu `VITE_API_URL=/api`. A conta pessoal `GustavoQ-Mateus` foi usada para as gravações e a conta `Gustavo-QMateus` foi restaurada no `finally`.
+
+`ECS_SERVICE`, `ECS_CONTAINER`, `LAMBDA_FUNCTION_NAME`, `BATCH_JOB_DEFINITION`, o bucket web e o ID da distribuição CloudFront ainda dependem dos recursos da próxima etapa. Não foram usados nomes de recursos inexistentes. Os papéis foram configurados enquanto o RDS concluía, pois já existiam; a conferência final da base foi feita após o apply completo.
