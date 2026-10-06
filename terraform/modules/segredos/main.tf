@@ -37,6 +37,14 @@ resource "aws_secretsmanager_secret" "anthropic" {
   recovery_window_in_days = 0
 }
 
+resource "aws_secretsmanager_secret_version" "anthropic_inicial" {
+  secret_id     = aws_secretsmanager_secret.anthropic.id
+  secret_string = "AGUARDANDO_CHAVE"
+  lifecycle {
+    ignore_changes = [secret_string, version_stages]
+  }
+}
+
 output "arns" {
   value = {
     JWT_SECRET        = aws_secretsmanager_secret.jwt.arn

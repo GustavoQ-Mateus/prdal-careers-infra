@@ -26,6 +26,10 @@ variable "max_tarefas" {
   type    = number
   default = 1
 }
+variable "servico_habilitado" {
+  type    = bool
+  default = true
+}
 variable "target_group_arn" {
   type    = string
   default = null
@@ -37,6 +41,18 @@ variable "ip_publico" {
 variable "segredos_arns" {
   type    = map(string)
   default = {}
+}
+variable "comando" {
+  type    = list(string)
+  default = null
+}
+variable "service_connect_namespace_arn" {
+  type    = string
+  default = null
+}
+variable "service_connect_nome" {
+  type    = string
+  default = null
 }
 
 data "aws_region" "atual" {}
@@ -97,15 +113,18 @@ resource "aws_ecs_task_definition" "servico" {
   memory                   = var.memoria
   execution_role_arn       = aws_iam_role.execucao.arn
   task_role_arn            = aws_iam_role.tarefa.arn
-  container_definitions = jsonencode([{
+  container_definitions = jsonencode([merge({
     name        = var.nome
     image       = var.imagem
     essential   = true
     environment = [for nome, valor in var.ambiente : { name = nome, value = valor }]
-    portMappings = [{
+    portMappings = [merge({
       containerPort = var.porta
       protocol      = "tcp"
-    }]
+      }, var.service_connect_nome == null ? {} : {
+      name        = var.service_connect_nome
+      appProtocol = "http"
+    })]
     secrets = [for nome, arn in var.segredos_arns : {
       name      = nome
       valueFrom = arn
@@ -118,7 +137,7 @@ resource "aws_ecs_task_definition" "servico" {
         awslogs-stream-prefix = var.nome
       }
     }
-  }])
+  }, var.comando == null ? {} : { command = var.comando })])
   depends_on = [aws_iam_role_policy_attachment.execucao, aws_iam_role_policy.segredos]
 }
 
@@ -130,6 +149,7 @@ resource "aws_iam_role_policy" "tarefa" {
 }
 
 resource "aws_ecs_service" "servico" {
+  count           = var.servico_habilitado ? 1 : 0
   name            = var.nome
   cluster         = var.cluster_arn
   task_definition = aws_ecs_task_definition.servico.arn
@@ -151,6 +171,21 @@ resource "aws_ecs_service" "servico" {
       container_port   = var.porta
     }
   }
+  dynamic "service_connect_configuration" {
+    for_each = var.service_connect_namespace_arn == null ? [] : [var.service_connect_namespace_arn]
+    content {
+      enabled   = true
+      namespace = service_connect_configuration.value
+      service {
+        port_name      = var.service_connect_nome
+        discovery_name = var.service_connect_nome
+        client_alias {
+          dns_name = var.service_connect_nome
+          port     = var.porta
+        }
+      }
+    }
+  }
   deployment_circuit_breaker {
     enable   = true
     rollback = true
@@ -161,9 +196,17 @@ resource "aws_appautoscaling_target" "servico" {
   count              = var.max_tarefas > var.min_tarefas ? 1 : 0
   min_capacity       = var.min_tarefas
   max_capacity       = var.max_tarefas
-  resource_id        = "service/${element(split("/", var.cluster_arn), 1)}/${aws_ecs_service.servico.name}"
+  resource_id        = "service/${element(split("/", var.cluster_arn), 1)}/${aws_ecs_service.servico[0].name}"
   scalable_dimension = "ecs:service:DesiredCount"
   service_namespace  = "ecs"
+}
+
+output "task_definition_arn" {
+  value = aws_ecs_task_definition.servico.arn
+}
+
+output "service_name" {
+  value = var.servico_habilitado ? aws_ecs_service.servico[0].name : null
 }
 
 resource "aws_appautoscaling_policy" "cpu" {
