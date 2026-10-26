@@ -8,9 +8,17 @@ terraform {
   }
 }
 
+variable "conta_aws" {
+  type = string
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.conta_aws))
+    error_message = "Informe o ID de 12 dígitos da conta AWS pessoal."
+  }
+}
+
 provider "aws" {
   region              = "us-east-1"
-  allowed_account_ids = ["<conta>"]
+  allowed_account_ids = [var.conta_aws]
   default_tags {
     tags = {
       projeto  = "prdal-careers"
@@ -21,7 +29,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "state" {
-  bucket        = "prdal-careers-tfstate-<conta>"
+  bucket        = "prdal-careers-tfstate-${var.conta_aws}"
   force_destroy = false
   lifecycle {
     prevent_destroy = true
@@ -53,7 +61,7 @@ resource "aws_s3_bucket_public_access_block" "state" {
 }
 
 resource "aws_s3_bucket" "seguranca" {
-  bucket        = "prdal-careers-seguranca-<conta>"
+  bucket        = "prdal-careers-seguranca-${var.conta_aws}"
   force_destroy = false
   lifecycle {
     prevent_destroy = true

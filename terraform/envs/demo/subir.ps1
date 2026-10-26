@@ -2,14 +2,16 @@
     [Parameter(Mandatory = $true)][ValidateSet('demo')][string]$Ambiente,
     [Parameter(Mandatory = $true)][string]$EmailOrcamento,
     [decimal]$LimiteMensal = 100,
+    [string]$Conta = $env:PRDAL_CONTA_AWS,
     [switch]$Executar
 )
 
 $ErrorActionPreference = 'Stop'
+if ($Conta -notmatch '^[0-9]{12}$') { throw 'Informe a conta AWS em -Conta ou PRDAL_CONTA_AWS' }
 $env:AWS_PROFILE = 'prdal-terraform'
 $env:AWS_DEFAULT_REGION = 'us-east-1'
 $identidade = aws sts get-caller-identity --profile prdal-terraform --output json | ConvertFrom-Json
-if ($LASTEXITCODE -ne 0 -or $identidade.Account -ne '<conta>' -or $identidade.Arn -ne 'arn:aws:iam::<conta>:user/prdal-terraform') {
+if ($LASTEXITCODE -ne 0 -or $identidade.Account -ne $Conta -or $identidade.Arn -ne "arn:aws:iam::${Conta}:user/prdal-terraform") {
     throw 'Identidade AWS diferente da autorizada'
 }
 $diretorio = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -18,7 +20,7 @@ $arquivo = [System.IO.Path]::GetTempFileName()
 
 Push-Location $diretorio
 try {
-    terraform init -input=false
+    terraform init -input=false "-backend-config=bucket=prdal-careers-tfstate-$Conta"
     if ($LASTEXITCODE -ne 0) { throw 'Falha no init' }
     terraform fmt -check -recursive
     if ($LASTEXITCODE -ne 0) { throw 'Falha no fmt' }
@@ -31,14 +33,14 @@ try {
     $bancoExistente = $recursos -contains 'module.rds[0].aws_db_instance.postgres'
     $artefatosExistentes = $recursos -contains 'module.artefatos[0].aws_s3_bucket.artefatos'
     $manifesto = $null
-    $quantidade = aws s3api list-objects-v2 --bucket prdal-careers-seguranca-<conta> --prefix demo/restauracao.json --query KeyCount --output text --profile prdal-terraform --region us-east-1
+    $quantidade = aws s3api list-objects-v2 --bucket "prdal-careers-seguranca-$Conta" --prefix demo/restauracao.json --query KeyCount --output text --profile prdal-terraform --region us-east-1
     if ($LASTEXITCODE -ne 0) { throw 'Falha ao consultar a cópia de segurança' }
     if ([int]$quantidade -gt 0) {
-        aws s3 cp 's3://prdal-careers-seguranca-<conta>/demo/restauracao.json' $arquivo --profile prdal-terraform --region us-east-1 | Out-Null
+        aws s3 cp "s3://prdal-careers-seguranca-$Conta/demo/restauracao.json" $arquivo --profile prdal-terraform --region us-east-1 | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Falha ao ler o manifesto de restauração' }
         $manifesto = Get-Content -Raw -LiteralPath $arquivo | ConvertFrom-Json
     }
-    $argumentos = @('-input=false', '-out', $plano, '-var', "email_orcamento=$EmailOrcamento", '-var', "limite_mensal=$LimiteMensal", '-var', 'habilitar_base=true')
+    $argumentos = @('-input=false', '-out', $plano, '-var', "conta_aws=$Conta", '-var', "email_orcamento=$EmailOrcamento", '-var', "limite_mensal=$LimiteMensal", '-var', 'habilitar_base=true')
     if ($manifesto -and -not $bancoExistente) {
         aws rds describe-db-snapshots --db-snapshot-identifier $manifesto.snapshot --profile prdal-terraform --region us-east-1 | Out-Null
         if ($LASTEXITCODE -ne 0) { throw 'Snapshot de restauração indisponível' }
@@ -54,7 +56,7 @@ try {
     terraform apply -input=false $plano
     if ($LASTEXITCODE -ne 0) { throw 'Falha no apply' }
     if ($manifesto -and -not $artefatosExistentes) {
-        aws s3 sync "s3://prdal-careers-seguranca-<conta>/$($manifesto.prefixo)" 's3://prdal-careers-demo-artefatos-<conta>/' --profile prdal-terraform --region us-east-1
+        aws s3 sync "s3://prdal-careers-seguranca-$Conta/$($manifesto.prefixo)" "s3://prdal-careers-demo-artefatos-$Conta/" --profile prdal-terraform --region us-east-1
         if ($LASTEXITCODE -ne 0) { throw 'Falha ao restaurar os artefatos' }
     }
 } finally {

@@ -50,7 +50,7 @@ module "cdn" {
   count                        = local.habilitar_servicos ? 1 : 0
   source                       = "../../modules/cdn"
   nome                         = "prdal-demo"
-  bucket_web                   = "prdal-careers-demo-web-<conta>"
+  bucket_web                   = "prdal-careers-demo-web-${var.conta_aws}"
   dominio_alb                  = module.alb[0].dns
   alb_origin_protocol_policy   = "http-only"
   alb_origin_header_value      = random_password.origem_cloudfront[0].result

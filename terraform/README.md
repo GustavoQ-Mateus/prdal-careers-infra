@@ -2,13 +2,23 @@
 
 `bootstrap/` cria os buckets persistentes de state e cópia de segurança. `envs/demo/` contém o ambiente efêmero. `modules/` contém as unidades de rede, dados, fila, segredos, imagens, cluster, OIDC e borda. O perfil `prod` será definido após a validação do `demo`; ele usará tarefas em subnets privadas, NAT e maior retenção de backup.
 
-Região: `us-east-1`. Conta: `<conta>`. Perfil CLI e Terraform: `prdal-terraform`. Todo comando Terraform deve definir `AWS_PROFILE=prdal-terraform` explicitamente.
+Região: `us-east-1`. Perfil CLI e Terraform: `prdal-terraform`. Todo comando Terraform deve definir `AWS_PROFILE=prdal-terraform` explicitamente.
+
+O ID da conta nunca é versionado. Os scripts o recebem por `-Conta` ou pela variável de ambiente `PRDAL_CONTA_AWS` e o repassam ao Terraform como `conta_aws`; comandos Terraform diretos usam `TF_VAR_conta_aws`. Os providers recusam qualquer conta diferente dela, os nomes dos buckets são derivados dela e o bucket do state entra no `init` por `-backend-config`. Os testes usam a conta fictícia `123456789012`.
 
 Ordem de operação: bootstrap, orçamento e base do `demo`. Cada `apply` exige `fmt -check`, `validate`, plano salvo, apresentação do resumo e custo ao autor e aprovação específica. Os scripts em `envs/demo/` fazem snapshot e cópia dos dados antes de destruir e restauram na próxima subida.
 
 ## Preparação
 
-O perfil `prdal-terraform` deve apontar para `arn:aws:iam::<conta>:user/prdal-terraform`. O autor cria e configura a chave no próprio terminal. Os providers recusam outra conta e os scripts também verificam o ARN. Nunca use os perfis corporativos.
+O perfil `prdal-terraform` deve apontar para `arn:aws:iam::<conta>:user/prdal-terraform`. O autor cria e configura a chave no próprio terminal. Os providers recusam outra conta e os scripts também verificam o ARN.
+
+```powershell
+$env:PRDAL_CONTA_AWS = '<conta>'
+$env:TF_VAR_conta_aws = $env:PRDAL_CONTA_AWS
+$backend = "-backend-config=bucket=prdal-careers-tfstate-$env:PRDAL_CONTA_AWS"
+```
+
+Os blocos abaixo supõem essas três variáveis definidas na sessão. Nunca use os perfis corporativos.
 
 Os arquivos de state, planos e variáveis locais são ignorados. Os lockfiles dos providers são versionados. Nenhuma senha entra como variável: o RDS administra a senha mestre, e o Terraform gera `JWT_SECRET` e `SERVICE_TOKEN` de 48 caracteres. O segredo `ANTHROPIC_API_KEY` nasce sem valor. Depois de cada recriação, o autor grava a chave por CLI no próprio terminal; ela nunca deve entrar no repositório, nos comandos do agente nem nos relatórios.
 
@@ -31,7 +41,7 @@ Após apresentar o plano e o custo e receber autorização para esse plano:
 $env:AWS_PROFILE = 'prdal-terraform'
 terraform -chdir=bootstrap apply bootstrap.tfplan
 Copy-Item bootstrap/backend-remoto.tf.example bootstrap/backend-remoto.tf
-terraform -chdir=bootstrap init -migrate-state
+terraform -chdir=bootstrap init -migrate-state $backend
 ```
 
 O bootstrap começa com state local porque o bucket ainda não existe. A migração leva o state do próprio bootstrap ao S3 com lock nativo. Preserve o state local até conferir a migração. Os dois buckets usam versionamento, AES256, bloqueio público e `prevent_destroy`; ficam fora do ciclo do `demo`.
@@ -40,7 +50,7 @@ O primeiro plano do `demo` contém somente o orçamento:
 
 ```powershell
 $env:AWS_PROFILE = 'prdal-terraform'
-terraform -chdir=envs/demo init
+terraform -chdir=envs/demo init $backend
 terraform -chdir=envs/demo fmt -check
 terraform -chdir=envs/demo validate
 terraform -chdir=envs/demo plan -var='email_orcamento=orcamento@example.invalid' -var='limite_mensal=100' -var='habilitar_base=false' -out=orcamento.tfplan

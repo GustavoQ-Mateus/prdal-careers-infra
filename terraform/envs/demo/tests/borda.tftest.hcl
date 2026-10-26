@@ -7,8 +7,12 @@ mock_provider "aws" {
     defaults = { arn = "arn:aws:s3:::teste-web", bucket_regional_domain_name = "teste-web.s3.us-east-1.amazonaws.com" }
   }
   mock_resource "aws_cloudfront_distribution" {
-    defaults = { arn = "arn:aws:cloudfront::<conta>:distribution/TESTE" }
+    defaults = { arn = "arn:aws:cloudfront::123456789012:distribution/TESTE" }
   }
+}
+
+variables {
+  conta_aws = "123456789012"
 }
 
 run "alb_https" {
@@ -18,7 +22,7 @@ run "alb_https" {
     nome             = "teste"
     vpc_id           = "vpc-0123456789abcdef0"
     subnets_publicas = ["subnet-0123456789abcdef0", "subnet-1123456789abcdef0"]
-    certificado_arn  = "arn:aws:acm:us-east-1:<conta>:certificate/00000000-0000-0000-0000-000000000000"
+    certificado_arn  = "arn:aws:acm:us-east-1:123456789012:certificate/00000000-0000-0000-0000-000000000000"
   }
   assert {
     condition     = aws_lb.principal.idle_timeout == 120 && aws_lb_listener.https[0].protocol == "HTTPS" && aws_lb_target_group.api.health_check[0].path == "/ready"
@@ -45,8 +49,8 @@ run "servico_com_rollback" {
   module { source = "../../modules/ecs-service" }
   variables {
     nome               = "teste"
-    cluster_arn        = "arn:aws:ecs:us-east-1:<conta>:cluster/teste"
-    imagem             = "<conta>.dkr.ecr.us-east-1.amazonaws.com/teste:teste"
+    cluster_arn        = "arn:aws:ecs:us-east-1:123456789012:cluster/teste"
+    imagem             = "123456789012.dkr.ecr.us-east-1.amazonaws.com/teste:teste"
     subnets            = ["subnet-0123456789abcdef0"]
     security_group_ids = ["sg-0123456789abcdef0"]
     porta              = 3000

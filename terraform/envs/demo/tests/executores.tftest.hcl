@@ -1,22 +1,26 @@
 mock_provider "aws" {
   override_during = plan
-  mock_resource "aws_iam_role" { defaults = { arn = "arn:aws:iam::<conta>:role/teste" } }
-  mock_resource "aws_cloudwatch_log_group" { defaults = { arn = "arn:aws:logs:us-east-1:<conta>:log-group:teste" } }
+  mock_resource "aws_iam_role" { defaults = { arn = "arn:aws:iam::123456789012:role/teste" } }
+  mock_resource "aws_cloudwatch_log_group" { defaults = { arn = "arn:aws:logs:us-east-1:123456789012:log-group:teste" } }
   mock_data "aws_region" { defaults = { region = "us-east-1" } }
-  mock_data "aws_caller_identity" { defaults = { account_id = "<conta>" } }
+  mock_data "aws_caller_identity" { defaults = { account_id = "123456789012" } }
   mock_data "aws_availability_zones" { defaults = { names = ["us-east-1a", "us-east-1b"] } }
-  mock_resource "aws_ecr_repository" { defaults = { arn = "arn:aws:ecr:us-east-1:<conta>:repository/teste" } }
-  mock_resource "aws_sqs_queue" { defaults = { arn = "arn:aws:sqs:us-east-1:<conta>:teste" } }
-  mock_resource "aws_iam_openid_connect_provider" { defaults = { arn = "arn:aws:iam::<conta>:oidc-provider/token.actions.githubusercontent.com" } }
-  mock_resource "aws_lambda_function" { defaults = { arn = "arn:aws:lambda:us-east-1:<conta>:function:teste" } }
-  mock_resource "aws_batch_compute_environment" { defaults = { arn = "arn:aws:batch:us-east-1:<conta>:compute-environment/teste" } }
-  mock_resource "aws_ecs_cluster" { defaults = { arn = "arn:aws:ecs:us-east-1:<conta>:cluster/teste" } }
-  mock_resource "aws_service_discovery_http_namespace" { defaults = { arn = "arn:aws:servicediscovery:us-east-1:<conta>:namespace/ns-teste" } }
-  mock_resource "aws_lb_target_group" { defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:<conta>:targetgroup/teste/0123456789abcdef" } }
-  mock_resource "aws_cloudfront_distribution" { defaults = { arn = "arn:aws:cloudfront::<conta>:distribution/TESTE" } }
+  mock_resource "aws_ecr_repository" { defaults = { arn = "arn:aws:ecr:us-east-1:123456789012:repository/teste" } }
+  mock_resource "aws_sqs_queue" { defaults = { arn = "arn:aws:sqs:us-east-1:123456789012:teste" } }
+  mock_resource "aws_iam_openid_connect_provider" { defaults = { arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com" } }
+  mock_resource "aws_lambda_function" { defaults = { arn = "arn:aws:lambda:us-east-1:123456789012:function:teste" } }
+  mock_resource "aws_batch_compute_environment" { defaults = { arn = "arn:aws:batch:us-east-1:123456789012:compute-environment/teste" } }
+  mock_resource "aws_ecs_cluster" { defaults = { arn = "arn:aws:ecs:us-east-1:123456789012:cluster/teste" } }
+  mock_resource "aws_service_discovery_http_namespace" { defaults = { arn = "arn:aws:servicediscovery:us-east-1:123456789012:namespace/ns-teste" } }
+  mock_resource "aws_lb_target_group" { defaults = { arn = "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/teste/0123456789abcdef" } }
+  mock_resource "aws_cloudfront_distribution" { defaults = { arn = "arn:aws:cloudfront::123456789012:distribution/TESTE" } }
   mock_resource "aws_s3_bucket" { defaults = { arn = "arn:aws:s3:::teste", bucket_regional_domain_name = "teste.s3.us-east-1.amazonaws.com" } }
   mock_data "aws_secretsmanager_secret_version" { defaults = { secret_string = "token-de-servico-de-teste-com-mais-de-32-bytes" } }
 }
+variables {
+  conta_aws = "123456789012"
+}
+
 mock_provider "random" { override_during = plan }
 
 run "lambda_sem_banco_sem_chave" {
@@ -24,10 +28,10 @@ run "lambda_sem_banco_sem_chave" {
   module { source = "../../modules/lambda" }
   variables {
     nome               = "teste-keywords"
-    imagem             = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/ai-service:teste"
+    imagem             = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/ai-service:teste"
     comando            = ["app.lambda_handler.handler"]
-    segredos_arns      = { ANTHROPIC_API_KEY = "arn:aws:secretsmanager:us-east-1:<conta>:secret:teste" }
-    topico_alertas_arn = "arn:aws:sns:us-east-1:<conta>:teste"
+    segredos_arns      = { ANTHROPIC_API_KEY = "arn:aws:secretsmanager:us-east-1:123456789012:secret:teste" }
+    topico_alertas_arn = "arn:aws:sns:us-east-1:123456789012:teste"
   }
   assert {
     condition     = length(aws_lambda_function.funcao.vpc_config) == 0 && aws_lambda_function.funcao.reserved_concurrent_executions == -1
@@ -48,10 +52,10 @@ run "scheduler_restrito" {
   module { source = "../../modules/scheduler" }
   variables {
     nome       = "teste"
-    lambda_arn = "arn:aws:lambda:us-east-1:<conta>:function:lembrete"
+    lambda_arn = "arn:aws:lambda:us-east-1:123456789012:function:lembrete"
   }
   assert {
-    condition     = jsondecode(aws_iam_role.agendador.assume_role_policy).Statement[0].Condition.ArnEquals["aws:SourceArn"] == "arn:aws:scheduler:us-east-1:<conta>:schedule-group/default"
+    condition     = jsondecode(aws_iam_role.agendador.assume_role_policy).Statement[0].Condition.ArnEquals["aws:SourceArn"] == "arn:aws:scheduler:us-east-1:123456789012:schedule-group/default"
     error_message = "Confianca do Scheduler deve restringir conta e grupo usados pelo worker."
   }
   assert {
@@ -72,7 +76,7 @@ run "batch_isolado" {
       batch-migrar-arquivos-s3 = {
         imagem           = "teste-migracao"
         ambiente         = { ARQUIVOS_LOCAIS_DIR = "/app/storage" }
-        segredos_arns    = { DATABASE_URL = "arn:aws:secretsmanager:us-east-1:<conta>:secret:database" }
+        segredos_arns    = { DATABASE_URL = "arn:aws:secretsmanager:us-east-1:123456789012:secret:database" }
         politica_tarefa  = jsonencode({ Version = "2012-10-17", Statement = [{ Effect = "Allow", Action = ["s3:PutObject"], Resource = "arn:aws:s3:::teste/*" }] })
         efs_id           = "fs-0123456789abcdef0"
         efs_access_point = "fsap-0123456789abcdef0"
@@ -80,7 +84,7 @@ run "batch_isolado" {
       batch-reprocessar-keywords = {
         imagem        = "teste-keywords"
         ambiente      = { LOTES_MODO = "anthropic" }
-        segredos_arns = { ANTHROPIC_API_KEY = "arn:aws:secretsmanager:us-east-1:<conta>:secret:chave" }
+        segredos_arns = { ANTHROPIC_API_KEY = "arn:aws:secretsmanager:us-east-1:123456789012:secret:chave" }
       }
     }
   }
@@ -104,11 +108,11 @@ run "contrato_completo" {
     email_orcamento = "orcamento@example.invalid"
     habilitar_base  = true
     imagens_servicos = {
-      ai-service             = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/ai-service@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      lambda-enviar-lembrete = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/lambda-enviar-lembrete@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-      api                    = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/api@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-      worker                 = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/worker@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
-      doc-service            = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/doc-service@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      ai-service             = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/ai-service@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      lambda-enviar-lembrete = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/lambda-enviar-lembrete@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      api                    = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/api@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      worker                 = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/worker@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      doc-service            = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/doc-service@sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
     }
   }
   assert {
@@ -127,10 +131,10 @@ run "impedir_imagens_incompletas" {
     email_orcamento = "orcamento@example.invalid"
     habilitar_base  = true
     imagens_servicos = {
-      ai-service                 = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/ai-service@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      lambda-enviar-lembrete     = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/lambda-enviar-lembrete@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-      batch-migrar-arquivos-s3   = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/batch-migrar-arquivos-s3@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-      batch-reprocessar-keywords = "<conta>.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/batch-reprocessar-keywords@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      ai-service                 = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/ai-service@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      lambda-enviar-lembrete     = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/lambda-enviar-lembrete@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      batch-migrar-arquivos-s3   = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/batch-migrar-arquivos-s3@sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      batch-reprocessar-keywords = "123456789012.dkr.ecr.us-east-1.amazonaws.com/prdal-demo/batch-reprocessar-keywords@sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
     }
   }
   expect_failures = [var.imagens_servicos]

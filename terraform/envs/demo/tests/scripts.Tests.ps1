@@ -1,4 +1,5 @@
 ﻿$ErrorActionPreference = 'Stop'
+$env:PRDAL_CONTA_AWS = '123456789012'
 $subir = Join-Path (Split-Path -Parent $PSScriptRoot) 'subir.ps1'
 $destruir = Join-Path (Split-Path -Parent $PSScriptRoot) 'destruir.ps1'
 $global:testeeventos = [System.Collections.Generic.List[string]]::new()
@@ -15,10 +16,10 @@ function aws {
     $operacao = $argumentos[0..1] -join ' '
     $global:testeeventos.Add($operacao)
     switch ($operacao) {
-        'sts get-caller-identity' { '{"Account":"<conta>","Arn":"arn:aws:iam::<conta>:user/prdal-terraform"}' }
+        'sts get-caller-identity' { '{"Account":"123456789012","Arn":"arn:aws:iam::123456789012:user/prdal-terraform"}' }
         's3api list-objects-v2' { if ($global:testetemManifesto) { '1' } else { '0' } }
         's3 cp' {
-            if ($argumentos[2] -eq 's3://prdal-careers-seguranca-<conta>/demo/restauracao.json') {
+            if ($argumentos[2] -eq 's3://prdal-careers-seguranca-123456789012/demo/restauracao.json') {
                 '{"snapshot":"prdal-demo-teste","prefixo":"artefatos/prdal-demo-teste/"}' | Set-Content -LiteralPath $argumentos[3] -Encoding UTF8
             }
         }

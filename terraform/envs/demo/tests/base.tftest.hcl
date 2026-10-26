@@ -4,14 +4,18 @@ mock_provider "aws" {
     defaults = { names = ["us-east-1a", "us-east-1b"] }
   }
   mock_resource "aws_ecr_repository" {
-    defaults = { arn = "arn:aws:ecr:us-east-1:<conta>:repository/teste" }
+    defaults = { arn = "arn:aws:ecr:us-east-1:123456789012:repository/teste" }
   }
   mock_resource "aws_sqs_queue" {
-    defaults = { arn = "arn:aws:sqs:us-east-1:<conta>:teste" }
+    defaults = { arn = "arn:aws:sqs:us-east-1:123456789012:teste" }
   }
   mock_resource "aws_iam_openid_connect_provider" {
-    defaults = { arn = "arn:aws:iam::<conta>:oidc-provider/token.actions.githubusercontent.com" }
+    defaults = { arn = "arn:aws:iam::123456789012:oidc-provider/token.actions.githubusercontent.com" }
   }
+}
+
+variables {
+  conta_aws = "123456789012"
 }
 
 mock_provider "random" { override_during = plan }
@@ -107,7 +111,7 @@ run "oidc_batch_restrito" {
       batch-migrar-arquivos-s3 = {
         github          = "prdal-careers-batch-migrar-arquivos-s3"
         github_id       = "1406303660"
-        ecr_arn         = "arn:aws:ecr:us-east-1:<conta>:repository/prdal-demo/batch-migrar-arquivos-s3"
+        ecr_arn         = "arn:aws:ecr:us-east-1:123456789012:repository/prdal-demo/batch-migrar-arquivos-s3"
         publicar_imagem = true
       }
       web = {

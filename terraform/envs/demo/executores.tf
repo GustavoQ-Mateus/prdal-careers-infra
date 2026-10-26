@@ -4,7 +4,7 @@ variable "imagens_servicos" {
   validation {
     condition = length(var.imagens_servicos) == 0 || (
       toset(keys(var.imagens_servicos)) == toset(["api", "worker", "ai-service", "doc-service", "lambda-enviar-lembrete"]) &&
-      alltrue([for nome, imagem in var.imagens_servicos : can(regex("^<conta>\\.dkr\\.ecr\\.us-east-1\\.amazonaws\\.com/prdal-demo/${nome}@sha256:[a-f0-9]{64}$", imagem))])
+      alltrue([for nome, imagem in var.imagens_servicos : can(regex("^${var.conta_aws}\\.dkr\\.ecr\\.us-east-1\\.amazonaws\\.com/prdal-demo/${nome}@sha256:[a-f0-9]{64}$", imagem))])
     )
     error_message = "Informe as cinco imagens do ECR pessoal por digest, ou um mapa vazio para preparar a base."
   }

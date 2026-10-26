@@ -15,7 +15,7 @@ module "rds" {
 module "artefatos" {
   count  = var.habilitar_base ? 1 : 0
   source = "../../modules/s3-artefatos"
-  nome   = "prdal-careers-demo-artefatos-<conta>"
+  nome   = "prdal-careers-demo-artefatos-${var.conta_aws}"
 }
 
 module "jobs" {

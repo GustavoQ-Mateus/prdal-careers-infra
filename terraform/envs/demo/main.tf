@@ -11,7 +11,6 @@ terraform {
     }
   }
   backend "s3" {
-    bucket       = "prdal-careers-tfstate-<conta>"
     key          = "demo/terraform.tfstate"
     region       = "us-east-1"
     use_lockfile = true
@@ -21,7 +20,7 @@ terraform {
 
 provider "aws" {
   region              = "us-east-1"
-  allowed_account_ids = ["<conta>"]
+  allowed_account_ids = [var.conta_aws]
   default_tags {
     tags = {
       projeto  = "prdal-careers"
@@ -35,6 +34,14 @@ module "orcamento" {
   source        = "../../modules/orcamento"
   email         = var.email_orcamento
   limite_mensal = var.limite_mensal
+}
+
+variable "conta_aws" {
+  type = string
+  validation {
+    condition     = can(regex("^[0-9]{12}$", var.conta_aws))
+    error_message = "Informe o ID de 12 dígitos da conta AWS pessoal."
+  }
 }
 
 variable "email_orcamento" {
